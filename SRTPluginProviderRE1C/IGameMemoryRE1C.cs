@@ -5,11 +5,17 @@ namespace SRTPluginProviderRE1C
 {
     public interface IGameMemoryRE1C
     {
+        // Plugin Version Info
+        string VersionInfo { get; }
+
+        // Game Info
+        string GameInfo { get; set; }
+
         // Player HP
-        byte PlayerHP { get; set; }
+        byte PlayerCurrentHealth { get; set; }
 
         // Player Max HP
-        byte PlayerMaxHP { get; set; }
+        byte PlayerMaxHealth { get; set; }
 
         // Player Poison
         byte PlayerPoison { get; set; }
@@ -20,10 +26,13 @@ namespace SRTPluginProviderRE1C
         // Current Weapon
         byte CurrentWeapon { get; set; }
 
-        // Versioninfo
-        string VersionInfo { get; }
+        // Enemy HP Array
+        EnemyHP[] EnemyHealth { get; set; }
 
-        // GameInfo
-        string GameInfo { get; set; }
+        // Inventory Item Array
+        InventoryEntry[] PlayerInventory { get; set; }
+
+        // Box Inventory Item Array
+        InventoryEntry[] BoxInventory { get; set; }
     }
 }

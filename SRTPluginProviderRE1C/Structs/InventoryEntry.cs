@@ -16,15 +16,20 @@ namespace SRTPluginProviderRE1C.Structs
         {
             get
             {
-                return string.Format("ItemID: ", PlayerInv, PlayerAmmo);
+                if (IsItem)
+                {
+                    return string.Format("ID: {0} | Name: {1} | Quantity: {2}", ItemID, ItemID.ToString(), Quantity);
+                }
+                return "Empty Slot";
             }
         }
 
-        public byte PlayerInv { get => _playerInv;}
-        internal byte _playerInv;
+        public ItemEnumeration ItemID { get => (ItemEnumeration)_itemID; }
+        internal byte _itemID;
+        public string ItemName => ItemID.ToString();
+        public byte Quantity { get => _quantity; }
+        internal byte _quantity;
 
-        public byte PlayerAmmo { get => _playerAmmo; }
-        internal byte _playerAmmo;
-
+        public bool IsItem => Enum.IsDefined(typeof(ItemEnumeration), _itemID);
     }
 }

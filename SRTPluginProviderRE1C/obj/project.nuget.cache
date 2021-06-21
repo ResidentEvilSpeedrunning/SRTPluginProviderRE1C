@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "bAbgUfU2h3+QlFE/khjle1DSLFhhXSzrQgpCgK8c5ZdGe7jmWyR376YD7NBmczQBpgqN1QEajI/4GKyP86TjPg==",
+  "success": true,
+  "projectFilePath": "C:\\Users\\video\\source\\repos\\SRTPluginProviderRE1C\\SRTPluginProviderRE1C\\SRTPluginProviderRE1C.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\video\\.nuget\\packages\\system.text.json\\4.7.2\\system.text.json.4.7.2.nupkg.sha512"
+  ],
+  "logs": []
+}

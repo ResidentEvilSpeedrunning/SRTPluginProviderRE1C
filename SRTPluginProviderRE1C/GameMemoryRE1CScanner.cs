@@ -10,8 +10,9 @@ namespace SRTPluginProviderRE1C
 {
     internal class GameMemoryRE1CScanner : IDisposable
     {
-        private static readonly int MAX_ENTITIES = 64;
-        private static readonly int MAX_ITEMS = 256;
+        private static readonly int MAX_ENTITIES = 8;
+        private static readonly int MAX_ITEMS = 8;
+        private static readonly int MAX_BOX_ITEMS = 8;
 
         // Variables
         private ProcessMemoryHandler memoryAccess;
@@ -27,6 +28,9 @@ namespace SRTPluginProviderRE1C
         private int pointerAddressHPMAX;
         private int pointerAddressIGT;
         private int pointerAddressCW;
+        private int pointerAddressEnemies;
+        private int pointerAddressBox;
+
         // Pointer Classes
         private IntPtr BaseAddress { get; set; }
         private MultilevelPointer PointerPlayerHP { get; set; }
@@ -35,7 +39,9 @@ namespace SRTPluginProviderRE1C
         private MultilevelPointer PointerPlayerIGT { get; set; }
         private MultilevelPointer PointerPlayerCW { get; set; }
         private MultilevelPointer[] PointerPlayerInv { get; set; }
-        
+        private MultilevelPointer[] PointerPlayerBox { get; set; }
+        private MultilevelPointer[] PointerEnemyEntries { get; set; }
+
         internal GameMemoryRE1CScanner(Process process = null)
         {
             gameMemoryValues = new GameMemoryRE1C();
@@ -71,20 +77,29 @@ namespace SRTPluginProviderRE1C
                 //for (int i = 0; i < PointerPlayerInv.Length; ++i)
                 //    PointerPlayerInv[i] = new MultilevelPointer(memoryAccess, IntPtr.Add(BaseAddress, pointerAddressInv), 0x0 + (i * 2));
 
-                PointerPlayerInv = new MultilevelPointer[8];
-                for (int i = 0; i < PointerPlayerInv.Length; ++i)
+                PointerPlayerBox = new MultilevelPointer[MAX_BOX_ITEMS];
+                PointerPlayerInv = new MultilevelPointer[MAX_ITEMS];
+                PointerEnemyEntries = new MultilevelPointer[MAX_ENTITIES];
+
+                for (int i = 0; i < 8; ++i)
+                {
+                    PointerPlayerBox[i] = new MultilevelPointer(memoryAccess, IntPtr.Add(BaseAddress, pointerAddressBox));
                     PointerPlayerInv[i] = new MultilevelPointer(memoryAccess, IntPtr.Add(BaseAddress, pointerAddressInv));
+                    PointerEnemyEntries[i] = new MultilevelPointer(memoryAccess, IntPtr.Add(BaseAddress, pointerAddressEnemies));
+                }
             }
         }
 
         private void SelectPointerAddresses()
         {
-            pointerAddressHP = 0x83523C;
-            pointerAddressInv = 0x838814;
-            pointerAddressPoison = 0x835290;
-            pointerAddressHPMAX = 0x835329;
             pointerAddressIGT = 0xAC4B4;
             pointerAddressCW = 0x8351B6;
+            pointerAddressHP = 0x83523C;
+            pointerAddressPoison = 0x835290;
+            pointerAddressHPMAX = 0x835329;
+            pointerAddressEnemies = 0x8353BC;
+            pointerAddressBox = 0x8387B4;
+            pointerAddressInv = 0x838814;
         }
 
 
@@ -98,7 +113,12 @@ namespace SRTPluginProviderRE1C
 
             // InventoryEntries
             for(int i = 0; i < 8; ++i)
+            {
+                PointerPlayerBox[i].UpdatePointers();
                 PointerPlayerInv[i].UpdatePointers();
+                PointerEnemyEntries[i].UpdatePointers();
+            }
+                
         }
 
         internal unsafe IGameMemoryRE1C Refresh()
@@ -106,11 +126,11 @@ namespace SRTPluginProviderRE1C
             bool success;
 
             // Player HP
-            fixed (byte* p = &gameMemoryValues._playerHP)
+            fixed (byte* p = &gameMemoryValues._playerCurrentHealth)
                 success = memoryAccess.TryGetByteAt(IntPtr.Add(BaseAddress, pointerAddressHP), p);
 
             // Player Max HP
-            fixed (byte* p = &gameMemoryValues._playerMaxHP)
+            fixed (byte* p = &gameMemoryValues._playerMaxHealth)
                 success = memoryAccess.TryGetByteAt(IntPtr.Add(BaseAddress, pointerAddressHPMAX), p);
 
             // Player Poisoned
@@ -125,24 +145,70 @@ namespace SRTPluginProviderRE1C
             fixed (byte* p = &gameMemoryValues._currentWeapon)
                 success = memoryAccess.TryGetByteAt(IntPtr.Add(BaseAddress, pointerAddressCW), p);
 
-            // Player Inventory
-            if (gameMemoryValues._invItem == null)
+            // Enemy Entires
+            if (gameMemoryValues._enemyHealth == null)
             {
-                gameMemoryValues._invItem = new InventoryEntry[8];
-                for (int i = 0; i < gameMemoryValues._invItem.Length; ++i)
-                    gameMemoryValues._invItem[i] = new InventoryEntry();
+                gameMemoryValues._enemyHealth = new EnemyHP[MAX_ENTITIES];
+                for (int i = 0; i < gameMemoryValues._enemyHealth.Length; ++i)
+                    gameMemoryValues._enemyHealth[i] = new EnemyHP();
             }
-            for (int i = 0; i < gameMemoryValues._invItem.Length; ++i)
+            for (int i = 0; i < gameMemoryValues._enemyHealth.Length; ++i)
             {
                 try
                 {
-                    fixed (byte* p = &gameMemoryValues.InvItem[i]._playerInv)
+                    fixed (ushort* p = &gameMemoryValues._enemyHealth[i]._currentHP)
+                        memoryAccess.TryGetUShortAt(IntPtr.Add(BaseAddress, pointerAddressEnemies + (i * 0x18C)), p);
+                }
+                catch
+                {
+                    gameMemoryValues._enemyHealth[i]._currentHP = 0xFFFF;
+                }
+            }
+
+            // Box Inventory
+            if (gameMemoryValues._boxInventory == null)
+            {
+                gameMemoryValues._boxInventory = new InventoryEntry[MAX_ITEMS];
+                for (int i = 0; i < gameMemoryValues._boxInventory.Length; ++i)
+                    gameMemoryValues._boxInventory[i] = new InventoryEntry();
+            }
+            for (int i = 0; i < gameMemoryValues._boxInventory.Length; ++i)
+            {
+                try
+                {
+                    fixed (byte* p = &gameMemoryValues._boxInventory[i]._itemID)
+                        memoryAccess.TryGetByteAt(IntPtr.Add(BaseAddress, pointerAddressBox + (i * 0x2)), p);
+                    fixed (byte* p = &gameMemoryValues._boxInventory[i]._quantity)
+                        memoryAccess.TryGetByteAt(IntPtr.Add(BaseAddress, pointerAddressBox + 1 + (i * 0x2)), p);
+                }
+                catch
+                {
+                    gameMemoryValues._boxInventory[i]._itemID = 0;
+                    gameMemoryValues._boxInventory[i]._quantity = 0;
+                }
+            }
+
+            // Player Inventory
+            if (gameMemoryValues._playerInventory == null)
+            {
+                gameMemoryValues._playerInventory = new InventoryEntry[MAX_ITEMS];
+                for (int i = 0; i < gameMemoryValues._playerInventory.Length; ++i)
+                    gameMemoryValues._playerInventory[i] = new InventoryEntry();
+            }
+            for (int i = 0; i < gameMemoryValues._playerInventory.Length; ++i)
+            {
+                try
+                {
+                    fixed (byte* p = &gameMemoryValues._playerInventory[i]._itemID)
                         memoryAccess.TryGetByteAt(IntPtr.Add(BaseAddress, pointerAddressInv + (i * 0x2)), p);
-                    fixed (byte* p = &gameMemoryValues.InvItem[i]._playerAmmo)
+                    fixed (byte* p = &gameMemoryValues._playerInventory[i]._quantity)
                         memoryAccess.TryGetByteAt(IntPtr.Add(BaseAddress, pointerAddressInv + 1 + (i * 0x2)), p);
                 }
                 catch
-                {}
+                {
+                    gameMemoryValues._playerInventory[i]._itemID = 0;
+                    gameMemoryValues._playerInventory[i]._quantity = 0;
+                }
             }
             HasScanned = true;
             return gameMemoryValues;
