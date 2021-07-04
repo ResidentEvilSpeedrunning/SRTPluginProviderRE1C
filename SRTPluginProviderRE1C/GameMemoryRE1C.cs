@@ -9,6 +9,8 @@ namespace SRTPluginProviderRE1C
 {
     public class GameMemoryRE1C : IGameMemoryRE1C
     {
+        private const string IGT_TIMESPAN_STRING_FORMAT = @"hh\:mm\:ss";
+        public string GameName => "RE1";
         // Versioninfo
         public string VersionInfo => FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion;
 
@@ -47,5 +49,22 @@ namespace SRTPluginProviderRE1C
         // Box Inventory Item Array
         public InventoryEntry[] BoxInventory { get => _boxInventory; set => _boxInventory = value; }
         internal InventoryEntry[] _boxInventory;
+
+        public TimeSpan IGTTimeSpan
+        {
+            get
+            {
+                TimeSpan timespanIGT;
+
+                if (IGT >= 0f)
+                    timespanIGT = TimeSpan.FromSeconds(IGT/30);
+                else
+                    timespanIGT = new TimeSpan();
+
+                return timespanIGT;
+            }
+        }
+
+        public string IGTFormattedString => IGTTimeSpan.ToString(IGT_TIMESPAN_STRING_FORMAT, CultureInfo.InvariantCulture);
     }
 }

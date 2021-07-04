@@ -5,6 +5,7 @@ namespace SRTPluginProviderRE1C
 {
     public interface IGameMemoryRE1C
     {
+        string GameName { get; }
         // Plugin Version Info
         string VersionInfo { get; }
 
@@ -34,5 +35,8 @@ namespace SRTPluginProviderRE1C
 
         // Box Inventory Item Array
         InventoryEntry[] BoxInventory { get; set; }
+        TimeSpan IGTTimeSpan { get; }
+
+        string IGTFormattedString { get; }
     }
 }
