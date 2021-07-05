@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using SRTPluginProviderRE1C.Structs;
 using System.Text;
+using SRTPluginProviderRE1C.Structs.GameStructs;
 
 namespace SRTPluginProviderRE1C
 {
@@ -33,14 +34,6 @@ namespace SRTPluginProviderRE1C
 
         // Pointer Classes
         private IntPtr BaseAddress { get; set; }
-        private MultilevelPointer PointerPlayerHP { get; set; }
-        private MultilevelPointer PointerPlayerPoison { get; set; }
-        private MultilevelPointer PointerPlayerHPMax { get; set; }
-        private MultilevelPointer PointerPlayerIGT { get; set; }
-        private MultilevelPointer PointerPlayerCW { get; set; }
-        private MultilevelPointer[] PointerPlayerInv { get; set; }
-        private MultilevelPointer[] PointerPlayerBox { get; set; }
-        private MultilevelPointer[] PointerEnemyEntries { get; set; }
 
         internal GameMemoryRE1CScanner(Process process = null)
         {
@@ -49,7 +42,7 @@ namespace SRTPluginProviderRE1C
                 Initialize(process);
         }
 
-        internal unsafe void Initialize(Process process)
+        internal void Initialize(Process process)
         {
             if (process == null)
                 return; // Do not continue if this is null.
@@ -65,28 +58,6 @@ namespace SRTPluginProviderRE1C
             if (ProcessRunning)
             {
                 BaseAddress = NativeWrappers.GetProcessBaseAddress(pid, PInvoke.ListModules.LIST_MODULES_64BIT); // Bypass .NET's managed solution for getting this and attempt to get this info ourselves via PInvoke since some users are getting 299 PARTIAL COPY when they seemingly shouldn't.
-
-                // Setup the pointers.
-                PointerPlayerHP = new MultilevelPointer(memoryAccess, IntPtr.Add(BaseAddress, pointerAddressHP));
-                PointerPlayerPoison = new MultilevelPointer(memoryAccess, IntPtr.Add(BaseAddress, pointerAddressPoison));
-                PointerPlayerHPMax = new MultilevelPointer(memoryAccess, IntPtr.Add(BaseAddress, pointerAddressHPMAX));
-                PointerPlayerIGT = new MultilevelPointer(memoryAccess, IntPtr.Add(BaseAddress, pointerAddressIGT));
-                PointerPlayerCW = new MultilevelPointer(memoryAccess, IntPtr.Add(BaseAddress, pointerAddressCW));
-
-                //PointerPlayerInv = new MultilevelPointer[8];
-                //for (int i = 0; i < PointerPlayerInv.Length; ++i)
-                //    PointerPlayerInv[i] = new MultilevelPointer(memoryAccess, IntPtr.Add(BaseAddress, pointerAddressInv), 0x0 + (i * 2));
-
-                PointerPlayerBox = new MultilevelPointer[MAX_BOX_ITEMS];
-                PointerPlayerInv = new MultilevelPointer[MAX_ITEMS];
-                PointerEnemyEntries = new MultilevelPointer[MAX_ENTITIES];
-
-                for (int i = 0; i < 8; ++i)
-                {
-                    PointerPlayerBox[i] = new MultilevelPointer(memoryAccess, IntPtr.Add(BaseAddress, pointerAddressBox));
-                    PointerPlayerInv[i] = new MultilevelPointer(memoryAccess, IntPtr.Add(BaseAddress, pointerAddressInv));
-                    PointerEnemyEntries[i] = new MultilevelPointer(memoryAccess, IntPtr.Add(BaseAddress, pointerAddressEnemies));
-                }
             }
         }
 
@@ -102,114 +73,61 @@ namespace SRTPluginProviderRE1C
             pointerAddressInv = 0x838814;
         }
 
-
-        internal void UpdatePointers()
+        internal IGameMemoryRE1C Refresh()
         {
-            PointerPlayerHP.UpdatePointers();
-            PointerPlayerPoison.UpdatePointers();
-            PointerPlayerHPMax.UpdatePointers();
-            PointerPlayerIGT.UpdatePointers();
-            PointerPlayerCW.UpdatePointers();
-
-            // InventoryEntries
-            for(int i = 0; i < 8; ++i)
-            {
-                PointerPlayerBox[i].UpdatePointers();
-                PointerPlayerInv[i].UpdatePointers();
-                PointerEnemyEntries[i].UpdatePointers();
-            }
-                
-        }
-
-        internal unsafe IGameMemoryRE1C Refresh()
-        {
-            bool success;
-
             // Player HP
-            fixed (byte* p = &gameMemoryValues._playerCurrentHealth)
-                success = memoryAccess.TryGetByteAt(IntPtr.Add(BaseAddress, pointerAddressHP), p);
+            gameMemoryValues._playerCurrentHealth = memoryAccess.GetByteAt(IntPtr.Add(BaseAddress, pointerAddressHP));
 
             // Player Max HP
-            fixed (byte* p = &gameMemoryValues._playerMaxHealth)
-                success = memoryAccess.TryGetByteAt(IntPtr.Add(BaseAddress, pointerAddressHPMAX), p);
+            gameMemoryValues._playerMaxHealth = memoryAccess.GetByteAt(IntPtr.Add(BaseAddress, pointerAddressHPMAX));
 
             // Player Poisoned
-            fixed (byte* p = &gameMemoryValues._playerPoison)
-                success = memoryAccess.TryGetByteAt(IntPtr.Add(BaseAddress, pointerAddressPoison), p);
+            gameMemoryValues._playerPoison = memoryAccess.GetByteAt(IntPtr.Add(BaseAddress, pointerAddressPoison));
 
             // IGT
-            fixed (int* p = &gameMemoryValues._igt)
-                success = memoryAccess.TryGetIntAt(IntPtr.Add(BaseAddress, pointerAddressIGT), p);
+            gameMemoryValues._igt = memoryAccess.GetIntAt(IntPtr.Add(BaseAddress, pointerAddressIGT));
 
             // Current Weapon
-            fixed (byte* p = &gameMemoryValues._currentWeapon)
-                success = memoryAccess.TryGetByteAt(IntPtr.Add(BaseAddress, pointerAddressCW), p);
+            gameMemoryValues._playerCurrentHealth = memoryAccess.GetByteAt(IntPtr.Add(BaseAddress, pointerAddressCW));
 
-            // Enemy Entires
-            if (gameMemoryValues._enemyHealth == null)
-            {
-                gameMemoryValues._enemyHealth = new EnemyHP[MAX_ENTITIES];
-                for (int i = 0; i < gameMemoryValues._enemyHealth.Length; ++i)
-                    gameMemoryValues._enemyHealth[i] = new EnemyHP();
-            }
+            // Enemy Entires           
             for (int i = 0; i < gameMemoryValues._enemyHealth.Length; ++i)
             {
-                try
-                {
-                    fixed (ushort* p = &gameMemoryValues._enemyHealth[i]._currentHP)
-                        memoryAccess.TryGetUShortAt(IntPtr.Add(BaseAddress, pointerAddressEnemies + (i * 0x18C)), p);
-                }
-                catch
-                {
-                    gameMemoryValues._enemyHealth[i]._currentHP = 0xFFFF;
-                }
+                GameEnemyEntry gehp = memoryAccess.GetAt<GameEnemyEntry>(IntPtr.Add(BaseAddress + pointerAddressEnemies, (i * 0x18C)));
+                gameMemoryValues._enemyHealth[i]._currentHP = gehp.CurrentHP;
             }
 
             // Box Inventory
-            if (gameMemoryValues._boxInventory == null)
-            {
-                gameMemoryValues._boxInventory = new InventoryEntry[MAX_ITEMS];
-                for (int i = 0; i < gameMemoryValues._boxInventory.Length; ++i)
-                    gameMemoryValues._boxInventory[i] = new InventoryEntry();
-            }
-            for (int i = 0; i < gameMemoryValues._boxInventory.Length; ++i)
-            {
-                try
-                {
-                    fixed (byte* p = &gameMemoryValues._boxInventory[i]._itemID)
-                        memoryAccess.TryGetByteAt(IntPtr.Add(BaseAddress, pointerAddressBox + (i * 0x2)), p);
-                    fixed (byte* p = &gameMemoryValues._boxInventory[i]._quantity)
-                        memoryAccess.TryGetByteAt(IntPtr.Add(BaseAddress, pointerAddressBox + 1 + (i * 0x2)), p);
-                }
-                catch
-                {
-                    gameMemoryValues._boxInventory[i]._itemID = 0;
-                    gameMemoryValues._boxInventory[i]._quantity = 0;
-                }
-            }
+            //if (gameMemoryValues._boxInventory == null)
+            //{
+            //    gameMemoryValues._boxInventory = new InventoryEntry[MAX_ITEMS];
+            //    for (int i = 0; i < gameMemoryValues._boxInventory.Length; ++i)
+            //        gameMemoryValues._boxInventory[i] = new InventoryEntry();
+            //}
+            //for (int i = 0; i < gameMemoryValues._boxInventory.Length; ++i)
+            //{
+            //    try
+            //    {
+            //        fixed (byte* p = &gameMemoryValues._boxInventory[i]._itemID)
+            //            memoryAccess.TryGetByteAt(IntPtr.Add(BaseAddress, pointerAddressBox + (i * 0x2)), p);
+            //        fixed (byte* p = &gameMemoryValues._boxInventory[i]._quantity)
+            //            memoryAccess.TryGetByteAt(IntPtr.Add(BaseAddress, pointerAddressBox + 1 + (i * 0x2)), p);
+            //    }
+            //    catch
+            //    {
+            //        gameMemoryValues._boxInventory[i]._itemID = 0;
+            //        gameMemoryValues._boxInventory[i]._quantity = 0;
+            //    }
+            //}
 
             // Player Inventory
-            if (gameMemoryValues._playerInventory == null)
-            {
-                gameMemoryValues._playerInventory = new InventoryEntry[MAX_ITEMS];
-                for (int i = 0; i < gameMemoryValues._playerInventory.Length; ++i)
-                    gameMemoryValues._playerInventory[i] = new InventoryEntry();
-            }
             for (int i = 0; i < gameMemoryValues._playerInventory.Length; ++i)
             {
-                try
-                {
-                    fixed (byte* p = &gameMemoryValues._playerInventory[i]._itemID)
-                        memoryAccess.TryGetByteAt(IntPtr.Add(BaseAddress, pointerAddressInv + (i * 0x2)), p);
-                    fixed (byte* p = &gameMemoryValues._playerInventory[i]._quantity)
-                        memoryAccess.TryGetByteAt(IntPtr.Add(BaseAddress, pointerAddressInv + 1 + (i * 0x2)), p);
-                }
-                catch
-                {
-                    gameMemoryValues._playerInventory[i]._itemID = 0;
-                    gameMemoryValues._playerInventory[i]._quantity = 0;
-                }
+                GameItemEntry gie = memoryAccess.GetAt<GameItemEntry>(IntPtr.Add(BaseAddress + pointerAddressInv, (i * 0x2)));
+                gameMemoryValues._playerInventory[i]._itemID = gie.ItemId;
+                gameMemoryValues._playerInventory[i]._quantity = gie.StackSize;
             }
+
             HasScanned = true;
             return gameMemoryValues;
         }
