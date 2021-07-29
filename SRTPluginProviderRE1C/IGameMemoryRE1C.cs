@@ -1,5 +1,6 @@
 ﻿using System;
 using SRTPluginProviderRE1C.Structs;
+using SRTPluginProviderRE1C.Structs.GameStructs;
 
 namespace SRTPluginProviderRE1C
 {
@@ -13,13 +14,7 @@ namespace SRTPluginProviderRE1C
         string GameInfo { get; set; }
 
         // Player HP
-        byte PlayerCurrentHealth { get; set; }
-
-        // Player Max HP
-        byte PlayerMaxHealth { get; set; }
-
-        // Player Poison
-        byte PlayerPoison { get; set; }
+        GamePlayer Player { get; set; }
 
         // IGT
         int IGT { get; set; }

@@ -76,21 +76,27 @@ namespace SRTPluginProviderRE1C
         internal IGameMemoryRE1C Refresh()
         {
             // Player HP
-            gameMemoryValues._playerCurrentHealth = memoryAccess.GetByteAt(IntPtr.Add(BaseAddress, pointerAddressHP));
+            gameMemoryValues._player = memoryAccess.GetAt<GamePlayer>(IntPtr.Add(BaseAddress, pointerAddressHP));
 
-            // Player Max HP
-            gameMemoryValues._playerMaxHealth = memoryAccess.GetByteAt(IntPtr.Add(BaseAddress, pointerAddressHPMAX));
-
-            // Player Poisoned
-            gameMemoryValues._playerPoison = memoryAccess.GetByteAt(IntPtr.Add(BaseAddress, pointerAddressPoison));
+            if (gameMemoryValues.Player.MaxHP == 96)
+            {
+                gameMemoryValues.PlayerName = "Jill: ";
+            }
+            else
+            {
+                gameMemoryValues.PlayerName = "Chris: ";
+            }
 
             // IGT
             gameMemoryValues._igt = memoryAccess.GetIntAt(IntPtr.Add(BaseAddress, pointerAddressIGT));
 
             // Current Weapon
-            gameMemoryValues._playerCurrentHealth = memoryAccess.GetByteAt(IntPtr.Add(BaseAddress, pointerAddressCW));
+            gameMemoryValues._currentWeapon = memoryAccess.GetByteAt(IntPtr.Add(BaseAddress, pointerAddressCW));
 
-            // Enemy Entires           
+            // Enemy Entires
+            if (gameMemoryValues._enemyHealth == null)
+                gameMemoryValues._enemyHealth = new EnemyHP[32];
+
             for (int i = 0; i < gameMemoryValues._enemyHealth.Length; ++i)
             {
                 GameEnemyEntry gehp = memoryAccess.GetAt<GameEnemyEntry>(IntPtr.Add(BaseAddress + pointerAddressEnemies, (i * 0x18C)));
@@ -121,6 +127,9 @@ namespace SRTPluginProviderRE1C
             //}
 
             // Player Inventory
+            if (gameMemoryValues._playerInventory == null)
+                gameMemoryValues._playerInventory = new InventoryEntry[8];
+
             for (int i = 0; i < gameMemoryValues._playerInventory.Length; ++i)
             {
                 GameItemEntry gie = memoryAccess.GetAt<GameItemEntry>(IntPtr.Add(BaseAddress + pointerAddressInv, (i * 0x2)));

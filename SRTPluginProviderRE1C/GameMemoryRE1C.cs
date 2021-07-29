@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using SRTPluginProviderRE1C.Structs;
 using System.Diagnostics;
 using System.Reflection;
+using SRTPluginProviderRE1C.Structs.GameStructs;
 
 namespace SRTPluginProviderRE1C
 {
@@ -19,16 +20,11 @@ namespace SRTPluginProviderRE1C
         internal string _gameInfo;
 
         // Player HP
-        public byte PlayerCurrentHealth { get => _playerCurrentHealth; set => _playerCurrentHealth = value;  }
-        internal byte _playerCurrentHealth;
+        public GamePlayer Player { get => _player; set => _player = value;  }
+        internal GamePlayer _player;
 
-        // Player Max HP
-        public byte PlayerMaxHealth { get => _playerMaxHealth; set => _playerMaxHealth = value; }
-        internal byte _playerMaxHealth;
-
-        // Poisoned
-        public byte PlayerPoison { get => _playerPoison; set => _playerPoison = value; }
-        internal byte _playerPoison;
+        public string PlayerName { get => _playerName; set => _playerName = value; }
+        internal string _playerName;
 
         // IGT
         public int IGT { get => _igt; set => _igt = value; }
