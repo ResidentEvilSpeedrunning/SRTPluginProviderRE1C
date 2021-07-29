@@ -2,18 +2,10 @@
 
 namespace SRTPluginProviderRE1C.Structs.GameStructs
 {
-    [StructLayout(LayoutKind.Explicit, Pack = 1)]
+    [StructLayout(LayoutKind.Explicit, Pack = 1, Size = 0x1)]
 
-    public unsafe struct GameEnemyEntry
+    public struct GameEnemyEntry
     {
         [FieldOffset(0x0)] public ushort CurrentHP;
-
-        public static GameEnemyEntry AsStruct(byte[] data)
-        {
-            fixed (byte* pb = &data[0])
-            {
-                return *(GameEnemyEntry*)pb;
-            }
-        }
     }
 }

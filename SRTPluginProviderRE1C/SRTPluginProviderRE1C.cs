@@ -10,7 +10,6 @@ namespace SRTPluginProviderRE1C
     {
         private Process process;
         private GameMemoryRE1CScanner gameMemoryScanner;
-        private Stopwatch stopwatch;
         private IPluginHostDelegates hostDelegates;
         public IPluginInfo Info => new PluginInfo();
         public bool GameRunning
@@ -33,8 +32,6 @@ namespace SRTPluginProviderRE1C
             this.hostDelegates = hostDelegates;
             process = GetProcess();
             gameMemoryScanner = new GameMemoryRE1CScanner(process);
-            stopwatch = new Stopwatch();
-            stopwatch.Start();
             return 0;
         }
 
@@ -42,8 +39,6 @@ namespace SRTPluginProviderRE1C
         {
             gameMemoryScanner?.Dispose();
             gameMemoryScanner = null;
-            stopwatch?.Stop();
-            stopwatch = null;
             return 0;
         }
 
@@ -53,12 +48,6 @@ namespace SRTPluginProviderRE1C
             {
                 if (!GameRunning) // Not running? Bail out!
                         return null;
-
-                if (stopwatch.ElapsedMilliseconds >= 2000L)
-                {
-                    gameMemoryScanner.UpdatePointers();
-                    stopwatch.Restart();
-                }
 
                 return gameMemoryScanner.Refresh();
             }
